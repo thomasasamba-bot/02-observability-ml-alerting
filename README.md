@@ -1,5 +1,12 @@
 # Project 2: MLOps Observability Platform
 
+![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)
+![Tests](https://img.shields.io/badge/Tests-119%20passed-brightgreen)
+![MLflow](https://img.shields.io/badge/MLflow-3.13.0-blue?logo=mlflow)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688?logo=fastapi&logoColor=white)
+![Kubernetes](https://img.shields.io/badge/Kubernetes-validated-326CE5?logo=kubernetes&logoColor=white)
+![CI](https://github.com/thomasasamba-bot/02-observability-ml-alerting/actions/workflows/ci.yml/badge.svg)
+
 > **Observe what's happening *inside* your ML system — not just around it.**
 
 A production-grade MLOps observability stack that combines infrastructure anomaly detection with deep ML pipeline visibility: model drift scores, prediction confidence distributions, and feature shift detection exposed as Prometheus metrics and visualised in Grafana.
@@ -24,14 +31,14 @@ This platform answers those questions continuously, in production, with zero man
 
 ## Architecture
 
-![MLOps Observability Platform Architecture](docs/architecture/architecture-overview.svg)
+![MLOps Observability Platform Architecture](docs/architecture/architecture-overview.png)
 
 The platform has two observability layers. The infrastructure layer (Layer 1) watches CPU, memory, disk, and network using Z-Score, EWMA, and Isolation Forest. The ML pipeline layer (Layer 2) watches what's happening *inside* the model — feature distributions, prediction confidence, and drift scores.
 
 ### Metrics pipeline
 ![Metrics Pipeline](docs/architecture/METRICS_PIPELINE-Time_Series_Observability.png)
 
-### Logs pipeline  
+### Logs pipeline
 ![Logs Pipeline](docs/architecture/LOGS_PIPELINE-Event_Driven_Observability.png)
 
 ---
@@ -96,21 +103,26 @@ As drift increases, model probabilities cluster toward 0.5 — the model becomes
 
 ## Test results
 
+> Unit tests run fully offline — no MLflow server or inference server required.
+> Integration tests require all four services running (MLflow, inference server, metrics exporter, and at least one completed drift check cycle).
+
 ```
-tests/unit/test_training.py        24 passed   7.3s
-tests/unit/test_predict.py         30 passed   9.5s
-tests/unit/test_drift_detector.py  32 passed   5.4s
-tests/integration/test_pipeline.py 33 passed  52.0s
-─────────────────────────────────────────────────
+tests/unit/test_training.py        24 passed   7.3s   (offline)
+tests/unit/test_predict.py         30 passed   9.5s   (offline)
+tests/unit/test_drift_detector.py  32 passed   5.4s   (offline)
+tests/integration/test_pipeline.py 33 passed  52.0s   (requires live services)
+─────────────────────────────────────────────────────────────────
 Total                              119 passed  74.2s
 ```
 
-The chaos test (`tests/chaos/inject_drift.py`) validates the full signal chain end-to-end:
+**Chaos test** (`tests/chaos/inject_drift.py`) validates the full signal chain end-to-end — from drifted CSV → HTTP batch requests → prediction buffer → background drift check → `/drift/status` API response:
 
 ```
-Injecting 300 drifted records → drift detected after 2 polls (20s)
-Injecting 300 baseline records → drift clears after 11 polls (110s)
+Injecting 300 drifted records  → drift detected after  2 polls  (20s)
+Injecting 300 baseline records → drift clears  after 11 polls (110s)
 ```
+
+Confidence mean shift during chaos test: `0.595` (drifted) → `0.314` (stable) — model uncertainty as a leading indicator.
 
 ---
 
@@ -219,15 +231,13 @@ Runbooks: [`docs/runbooks/`](docs/runbooks/)
 
 ## Project structure
 
-
-02-observability-ml-alerting/
-![02-observability-ml-alerting](docs/diagrams/project _folder_structure_overview.png)
+![Project folder structure](docs/diagrams/project%20_folder_structure_overview.png)
 
 ---
 
 ## Related Projects
 
-- [01-self-healing-infrastructure](https://github.com/thomasasamba-bot/01-self-healing-infrastructure) — AIOps self-healing with Lambda/SSM
+- [01-aiops-self-healing-infrastructure](https://github.com/thomasasamba-bot/01-aiops-self-healing-infrastructure) — AIOps self-healing with Lambda/SSM
 - [03-secure-aws-infrastructure](https://github.com/thomasasamba-bot/03-secure-aws-infrastructure) — IaC with KMS and IAM hardening
 - [04-kubernetes-orchestration](https://github.com/thomasasamba-bot/04-kubernetes-orchestration) — EKS zero-downtime deployments
 - [05-devsecops-pipeline](https://github.com/thomasasamba-bot/05-devsecops-pipeline) — CI/CD with SonarQube and Trivy
