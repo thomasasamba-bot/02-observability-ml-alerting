@@ -315,8 +315,8 @@ def _scrape_schema() -> None:
 
 def _scrape_inference_server() -> None:
     """Probe the inference server liveness endpoint."""
-    import urllib.request
     import urllib.error
+    import urllib.request
 
     url = f"{INFERENCE_BASE_URL}/health/live"
     try:

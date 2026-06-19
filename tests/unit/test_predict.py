@@ -21,12 +21,9 @@ Usage:
 from __future__ import annotations
 
 import threading
-import time
-from pathlib import Path
 
 import numpy as np
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -61,8 +58,8 @@ FEATURE_COLUMNS = [
 
 def _mlflow_available() -> bool:
     """Return True if the MLflow server is reachable."""
-    import urllib.request
     import urllib.error
+    import urllib.request
     try:
         urllib.request.urlopen("http://localhost:5000/health", timeout=2)
         return True
@@ -121,27 +118,28 @@ def loaded_cache():
 class TestValidation:
 
     def test_valid_input_returns_dataframe(self):
-        from app.pipeline.predict import validate_features
         import pandas as pd
+
+        from app.pipeline.predict import validate_features
         df = validate_features(LOW_RISK)
         assert isinstance(df, pd.DataFrame)
         assert list(df.columns) == FEATURE_COLUMNS
         assert len(df) == 1
 
     def test_missing_single_feature_raises(self):
-        from app.pipeline.predict import validate_features, ValidationError
+        from app.pipeline.predict import ValidationError, validate_features
         bad = {k: v for k, v in LOW_RISK.items() if k != "credit_score"}
         with pytest.raises(ValidationError, match="credit_score"):
             validate_features(bad)
 
     def test_missing_multiple_features_raises(self):
-        from app.pipeline.predict import validate_features, ValidationError
+        from app.pipeline.predict import ValidationError, validate_features
         bad = {"age": 35, "income": 50000}
         with pytest.raises(ValidationError):
             validate_features(bad)
 
     def test_non_numeric_feature_raises(self):
-        from app.pipeline.predict import validate_features, ValidationError
+        from app.pipeline.predict import ValidationError, validate_features
         bad = {**LOW_RISK, "credit_score": "excellent"}
         with pytest.raises(ValidationError, match="credit_score"):
             validate_features(bad)
@@ -162,12 +160,12 @@ class TestValidation:
         ).all()
 
     def test_empty_batch_raises(self):
-        from app.pipeline.predict import validate_batch, ValidationError
+        from app.pipeline.predict import ValidationError, validate_batch
         with pytest.raises(ValidationError, match="[Ee]mpty"):
             validate_batch([])
 
     def test_batch_with_bad_record_raises(self):
-        from app.pipeline.predict import validate_batch, ValidationError
+        from app.pipeline.predict import ValidationError, validate_batch
         bad_record = {k: v for k, v in LOW_RISK.items() if k != "income"}
         with pytest.raises(ValidationError):
             validate_batch([LOW_RISK, bad_record])
@@ -219,7 +217,7 @@ class TestSinglePrediction:
             f"Low-risk prob {p_low:.3f} should be < high-risk {p_high:.3f}"
 
     def test_decision_consistent_with_threshold(self, loaded_cache):
-        from app.pipeline.predict import predict, DECISION_THRESHOLD
+        from app.pipeline.predict import DECISION_THRESHOLD, predict
         for sample in [LOW_RISK, HIGH_RISK, BORDERLINE]:
             result = predict(sample)
             expected = 1 if result.probability >= DECISION_THRESHOLD else 0
@@ -229,7 +227,7 @@ class TestSinglePrediction:
             )
 
     def test_low_confidence_flag_when_probability_in_band(self, loaded_cache):
-        from app.pipeline.predict import predict, LOW_CONF_LOW, LOW_CONF_HIGH
+        from app.pipeline.predict import LOW_CONF_HIGH, LOW_CONF_LOW, predict
         result = predict(BORDERLINE)
         expected_low_conf = LOW_CONF_LOW <= result.probability <= LOW_CONF_HIGH
         assert result.low_confidence == expected_low_conf, (
@@ -307,7 +305,7 @@ class TestBatchPrediction:
 class TestPredictionBuffer:
 
     def test_predictions_appear_in_buffer(self, loaded_cache):
-        from app.pipeline.predict import predict, get_recent_predictions, _prediction_buffer
+        from app.pipeline.predict import _prediction_buffer, get_recent_predictions, predict
         initial_size = len(_prediction_buffer)
         predict(LOW_RISK)
         predict(HIGH_RISK)
@@ -315,7 +313,7 @@ class TestPredictionBuffer:
         assert len(records) >= initial_size + 2
 
     def test_buffer_records_have_correct_fields(self, loaded_cache):
-        from app.pipeline.predict import predict, get_recent_predictions
+        from app.pipeline.predict import get_recent_predictions, predict
         predict(LOW_RISK)
         records = get_recent_predictions(1)
         assert len(records) == 1
@@ -327,13 +325,13 @@ class TestPredictionBuffer:
         assert hasattr(r, "model_version")
 
     def test_get_recent_predictions_limit(self, loaded_cache):
-        from app.pipeline.predict import predict_batch, get_recent_predictions
+        from app.pipeline.predict import get_recent_predictions, predict_batch
         predict_batch([LOW_RISK] * 20)
         records = get_recent_predictions(5)
         assert len(records) == 5
 
     def test_prediction_stats_structure(self, loaded_cache):
-        from app.pipeline.predict import predict, get_prediction_stats
+        from app.pipeline.predict import get_prediction_stats, predict
         predict(LOW_RISK)
         stats = get_prediction_stats()
         assert "buffered_predictions" in stats
@@ -346,7 +344,7 @@ class TestPredictionBuffer:
         assert "p50"  in conf
 
     def test_prediction_stats_confidence_in_range(self, loaded_cache):
-        from app.pipeline.predict import predict_batch, get_prediction_stats
+        from app.pipeline.predict import get_prediction_stats, predict_batch
         predict_batch([LOW_RISK, HIGH_RISK] * 10)
         stats = get_prediction_stats()
         mean = stats["confidence"]["mean"]
@@ -354,7 +352,7 @@ class TestPredictionBuffer:
 
     def test_buffer_thread_safety(self, loaded_cache):
         """Concurrent predictions from multiple threads should not corrupt the buffer."""
-        from app.pipeline.predict import predict, get_recent_predictions
+        from app.pipeline.predict import get_recent_predictions, predict
 
         errors = []
 

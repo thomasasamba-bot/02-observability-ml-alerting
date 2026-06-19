@@ -20,13 +20,11 @@ Usage:
 from __future__ import annotations
 
 import json
-import time
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -97,7 +95,7 @@ class TestPSIContinuous:
 
     def test_drifted_income_psi_significant(self, drifted_df, schema):
         """Income was drifted — PSI should exceed alert threshold."""
-        from app.pipeline.drift_detector import _psi_continuous, PSI_ALERT_THRESHOLD
+        from app.pipeline.drift_detector import PSI_ALERT_THRESHOLD, _psi_continuous
         stats = schema["features"]["income"]
         col   = drifted_df["income"].to_numpy()
         psi   = _psi_continuous(col, stats["psi_bins"])
@@ -105,7 +103,7 @@ class TestPSIContinuous:
             f"Drifted income PSI {psi:.4f} below alert threshold {PSI_ALERT_THRESHOLD}"
 
     def test_drifted_dti_psi_significant(self, drifted_df, schema):
-        from app.pipeline.drift_detector import _psi_continuous, PSI_ALERT_THRESHOLD
+        from app.pipeline.drift_detector import PSI_ALERT_THRESHOLD, _psi_continuous
         stats = schema["features"]["debt_to_income"]
         col   = drifted_df["debt_to_income"].to_numpy()
         psi   = _psi_continuous(col, stats["psi_bins"])
@@ -114,7 +112,7 @@ class TestPSIContinuous:
 
     def test_stable_features_do_not_drift(self, drifted_df, schema):
         """Features with no injected drift should stay below alert threshold."""
-        from app.pipeline.drift_detector import _psi_continuous, PSI_ALERT_THRESHOLD
+        from app.pipeline.drift_detector import PSI_ALERT_THRESHOLD, _psi_continuous
         stable_features = ["age", "loan_amount", "employment_years"]
         for feat in stable_features:
             stats = schema["features"][feat]
@@ -145,7 +143,7 @@ class TestPSIDiscrete:
 
     def test_drifted_missed_payments_significant(self, drifted_df, schema):
         """Drifted missed_payments (Poisson 0.4→1.1) should exceed alert threshold."""
-        from app.pipeline.drift_detector import _psi_discrete, PSI_ALERT_THRESHOLD
+        from app.pipeline.drift_detector import PSI_ALERT_THRESHOLD, _psi_discrete
         freq_table = schema["features"]["missed_payments"]["freq_table"]
         col        = drifted_df["missed_payments"].to_numpy()
         psi        = _psi_discrete(col, freq_table)
@@ -228,7 +226,7 @@ class TestKSBaseline:
 class TestDriftCheck:
 
     def test_report_has_correct_structure(self, baseline_features, schema):
-        from app.pipeline.drift_detector import check_drift, FEATURE_COLUMNS
+        from app.pipeline.drift_detector import FEATURE_COLUMNS, check_drift
         report = check_drift(baseline_features, schema)
         assert hasattr(report, "timestamp")
         assert hasattr(report, "window_size")
@@ -281,7 +279,10 @@ class TestDriftCheck:
         so we validate against both conditions, not PSI alone.
         """
         from app.pipeline.drift_detector import (
-            check_drift, PSI_WARN_THRESHOLD, PSI_ALERT_THRESHOLD, KS_ALPHA,
+            KS_ALPHA,
+            PSI_ALERT_THRESHOLD,
+            PSI_WARN_THRESHOLD,
+            check_drift,
         )
         report = check_drift(drifted_features, schema)
         for r in report.feature_results:
@@ -296,7 +297,7 @@ class TestDriftCheck:
                     f"Feature '{r.feature}' PSI={r.psi:.4f} KS-p={r.ks_pvalue:.4f} should be 'stable'"
 
     def test_window_too_small_returns_error_report(self, schema):
-        from app.pipeline.drift_detector import check_drift, MIN_WINDOW_SIZE
+        from app.pipeline.drift_detector import MIN_WINDOW_SIZE, check_drift
         tiny_df = pd.DataFrame(
             [[35, 50000, 15000, 650, 0.35, 5.0, 4, 0]] * (MIN_WINDOW_SIZE - 1),
             columns=["age", "income", "loan_amount", "credit_score",

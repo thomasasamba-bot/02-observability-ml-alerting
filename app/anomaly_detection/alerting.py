@@ -5,7 +5,10 @@ Sends alert payloads to Alertmanager's /api/v2/alerts endpoint.
 Called by the detection loop when an anomaly exceeds the threshold.
 """
 
+from datetime import UTC
+
 import requests
+
 from .config import ALERTMANAGER_URL
 from .utils.logger import get_logger
 
@@ -57,12 +60,12 @@ def resolve_alert(alert_name: str, instance: str) -> bool:
     Resolves an active alert by sending it with an 'endsAt' timestamp.
     Alertmanager will mark it resolved.
     """
-    from datetime import datetime, timezone
+    from datetime import datetime
     payload = {
         "labels": {
             "alertname": alert_name,
             "instance":  instance,
         },
-        "endsAt": datetime.now(timezone.utc).isoformat(),
+        "endsAt": datetime.now(UTC).isoformat(),
     }
     return send_alert(payload)

@@ -44,10 +44,10 @@ from fastapi import FastAPI, HTTPException, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, PlainTextResponse
 from prometheus_client import (
+    CONTENT_TYPE_LATEST,
     Counter,
     Histogram,
     generate_latest,
-    CONTENT_TYPE_LATEST,
 )
 from pydantic import BaseModel, Field, field_validator
 
@@ -265,7 +265,8 @@ async def predict(request: PredictRequest):
     `review_required` flag for low-confidence predictions (probability
     in the 0.35–0.55 band) that should be routed for human review.
     """
-    from app.pipeline.predict import predict as _predict, ValidationError
+    from app.pipeline.predict import ValidationError
+    from app.pipeline.predict import predict as _predict
 
     try:
         result = _predict(request.to_dict())
@@ -297,7 +298,8 @@ async def predict_batch(request: BatchPredictRequest):
     More efficient than calling /predict in a loop — single model
     forward pass for the entire batch.
     """
-    from app.pipeline.predict import predict_batch as _predict_batch, ValidationError
+    from app.pipeline.predict import ValidationError
+    from app.pipeline.predict import predict_batch as _predict_batch
 
     t0      = time.perf_counter()
     records = [r.to_dict() for r in request.records]
@@ -498,7 +500,7 @@ async def service_status():
     Combined service status: model info, prediction stats, drift summary.
     Used by the ops dashboard.
     """
-    from app.pipeline.predict import get_prediction_stats, _cache
+    from app.pipeline.predict import _cache, get_prediction_stats
 
     drift_summary: dict[str, Any] = {"detector": "not_started"}
     if _drift_detector:

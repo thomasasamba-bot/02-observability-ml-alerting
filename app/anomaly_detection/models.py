@@ -1,6 +1,6 @@
-from pydantic import BaseModel
-from typing import Dict
 from datetime import datetime
+
+from pydantic import BaseModel
 
 
 class MetricSample(BaseModel):
@@ -14,4 +14,4 @@ class AnomalyResult(BaseModel):
     anomaly_score: float
     detection_method: str
     timestamp: datetime
-    metadata: Dict = {}
+    metadata: dict = {}

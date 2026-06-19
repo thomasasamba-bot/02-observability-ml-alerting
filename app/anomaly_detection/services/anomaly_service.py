@@ -5,19 +5,19 @@ Orchestrates the three detection algorithms (Z-Score, EWMA, Isolation Forest)
 and produces a composite anomaly result with Prometheus metric updates.
 """
 
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
-from ..detection.zscore import detect_zscore
+from ..config import ANOMALY_THRESHOLD
 from ..detection.ewma import detect_ewma
 from ..detection.isolation_forest import detect_isolation_forest
+from ..detection.zscore import detect_zscore
 from ..metrics.exporter import (
+    anomalies_total,
     anomaly_score_gauge,
-    zscore_gauge,
     ewma_gauge,
     isolation_forest_gauge,
-    anomalies_total,
+    zscore_gauge,
 )
-from ..config import ANOMALY_THRESHOLD
 from ..utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -106,7 +106,7 @@ def analyze_metric(metric_name: str, values: list[float]) -> list[dict]:
                 "composite":        round(composite_score, 4),
             },
             "value":     current,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         })
 
     return results
@@ -115,7 +115,10 @@ def analyze_metric(metric_name: str, values: list[float]) -> list[dict]:
 def _contributing_methods(z: bool, ew: bool, iso: bool) -> str:
     """Returns a human-readable string of which methods flagged the anomaly."""
     methods = []
-    if z:   methods.append("zscore")
-    if ew:  methods.append("ewma")
-    if iso: methods.append("isolation_forest")
+    if z:
+        methods.append("zscore")
+    if ew:
+        methods.append("ewma")
+    if iso:
+        methods.append("isolation_forest")
     return "+".join(methods) if methods else "composite_threshold"

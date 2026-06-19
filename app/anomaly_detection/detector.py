@@ -17,24 +17,24 @@ Endpoints:
   GET /status        — detection loop status and config
 """
 
-import time
 import threading
+import time
 from contextlib import asynccontextmanager
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import FastAPI, HTTPException
 from prometheus_client import (
-    make_asgi_app,
-    Gauge,
     Counter,
+    Gauge,
+    make_asgi_app,
 )
 
-from .config import POLL_INTERVAL, PROMETHEUS_URL, ANOMALY_THRESHOLD
-from .utils.logger import get_logger
-from .services.metric_service import fetch_all_metrics
-from .services.anomaly_service import analyze_metric
 from .alerting import send_alert
+from .config import ANOMALY_THRESHOLD, POLL_INTERVAL, PROMETHEUS_URL
 from .elasticsearch_client import index_anomaly
+from .services.anomaly_service import analyze_metric
+from .services.metric_service import fetch_all_metrics
+from .utils.logger import get_logger
 
 logger = get_logger(__name__)
 
@@ -134,7 +134,7 @@ def _run_detection_cycle() -> None:
         ML_MONITORED_SERIES.set(
             len(_detection_state["metric_history"])
         )
-        _detection_state["last_run"]       = datetime.now(timezone.utc).isoformat()
+        _detection_state["last_run"]       = datetime.now(UTC).isoformat()
         _detection_state["total_runs"]    += 1
         _detection_state["total_anomalies"] += cycle_anomalies
 
@@ -180,7 +180,7 @@ def _handle_anomaly(anomaly: dict, instance: str, current_value: float) -> None:
                 f"Current value: {current_value:.2f}"
             ),
         },
-        "startsAt": datetime.now(timezone.utc).isoformat(),
+        "startsAt": datetime.now(UTC).isoformat(),
     }
     try:
         send_alert(alert_payload)
@@ -189,7 +189,7 @@ def _handle_anomaly(anomaly: dict, instance: str, current_value: float) -> None:
 
     # Index to Elasticsearch
     doc = {
-        "@timestamp":   datetime.now(timezone.utc).isoformat(),
+        "@timestamp":   datetime.now(UTC).isoformat(),
         "metric_name":  metric_name,
         "instance":     instance,
         "value":        current_value,
@@ -209,7 +209,7 @@ def _handle_anomaly(anomaly: dict, instance: str, current_value: float) -> None:
             "instance":  instance,
             "value":     current_value,
             "severity":  severity,
-            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "timestamp": datetime.now(UTC).isoformat(),
         })
         if len(_detection_state["recent_anomalies"]) > 50:
             _detection_state["recent_anomalies"].pop(0)
@@ -257,7 +257,7 @@ app.mount("/metrics", metrics_app)
 @app.get("/health/live", tags=["health"])
 def liveness():
     """Kubernetes liveness probe — always returns 200 if process is alive."""
-    return {"status": "alive", "timestamp": datetime.now(timezone.utc).isoformat()}
+    return {"status": "alive", "timestamp": datetime.now(UTC).isoformat()}
 
 
 @app.get("/health/ready", tags=["health"])
@@ -283,7 +283,7 @@ def readiness():
         "status":         "ready",
         "prometheus":     "reachable",
         "detection_loop": "running" if _detection_state["running"] else "stopped",
-        "timestamp":      datetime.now(timezone.utc).isoformat(),
+        "timestamp":      datetime.now(UTC).isoformat(),
     }
 
 

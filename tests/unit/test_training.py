@@ -19,8 +19,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import os
-import tempfile
 from pathlib import Path
 
 import numpy as np
@@ -28,7 +26,6 @@ import pandas as pd
 import pytest
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
-
 
 # ---------------------------------------------------------------------------
 # Fixtures
@@ -60,10 +57,14 @@ def trained_pipeline(baseline_csv, tmp_path_factory):
     """
     import mlflow
     import mlflow.sklearn
+
     from app.pipeline.train import (
-        FEATURE_COLUMNS, TARGET_COLUMN,
-        build_pipeline, build_feature_schema,
-        load_data, save_feature_schema,
+        FEATURE_COLUMNS,
+        TARGET_COLUMN,
+        build_feature_schema,
+        build_pipeline,
+        load_data,
+        save_feature_schema,
     )
 
     tmp        = tmp_path_factory.mktemp("mlflow")
@@ -103,7 +104,7 @@ def trained_pipeline(baseline_csv, tmp_path_factory):
 class TestDataLoading:
 
     def test_loads_correct_columns(self, baseline_csv):
-        from app.pipeline.train import load_data, FEATURE_COLUMNS, TARGET_COLUMN
+        from app.pipeline.train import FEATURE_COLUMNS, TARGET_COLUMN, load_data
         df = load_data(baseline_csv)
         for col in FEATURE_COLUMNS + [TARGET_COLUMN]:
             assert col in df.columns, f"Missing column: {col}"
@@ -114,14 +115,14 @@ class TestDataLoading:
         assert len(df) == 500
 
     def test_default_rate_in_range(self, baseline_csv):
-        from app.pipeline.train import load_data, TARGET_COLUMN
+        from app.pipeline.train import TARGET_COLUMN, load_data
         df = load_data(baseline_csv)
         dr = df[TARGET_COLUMN].mean()
         assert 0.10 <= dr <= 0.40, \
             f"Default rate {dr:.2f} outside expected range [0.10, 0.40]"
 
     def test_no_missing_values(self, baseline_csv):
-        from app.pipeline.train import load_data, FEATURE_COLUMNS
+        from app.pipeline.train import FEATURE_COLUMNS, load_data
         df    = load_data(baseline_csv)
         nulls = df[FEATURE_COLUMNS].isnull().sum()
         assert nulls.sum() == 0, f"Unexpected nulls:\n{nulls[nulls > 0]}"

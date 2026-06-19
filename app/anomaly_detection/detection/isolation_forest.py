@@ -1,5 +1,5 @@
-from sklearn.ensemble import IsolationForest
 import numpy as np
+from sklearn.ensemble import IsolationForest
 
 
 def detect_isolation_forest(values):
