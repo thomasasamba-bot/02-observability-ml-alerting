@@ -1,4 +1,4 @@
-# Project 2: MLOps Observability Platform
+# Project : MLOps Observability Platform
 
 ![Python](https://img.shields.io/badge/Python-3.12%2B-blue?logo=python&logoColor=white)
 ![Tests](https://img.shields.io/badge/Tests-119%20passed-brightgreen)
@@ -14,6 +14,23 @@ A production-grade MLOps observability stack that combines infrastructure anomal
 Part of a public SRE/AIOps portfolio by **Thomas Asamba** — Senior SRE and Cloud/DevOps Engineer, Nairobi.
 
 🔗 [Project 1: AIOps Self-Healing Infrastructure](https://github.com/thomasasamba-bot/01-aiops-self-healing-infrastructure)
+
+---
+
+## Documentation
+
+Comprehensive guides and references for using this platform:
+
+| Document | Description |
+|----------|-------------|
+| **[CI/CD Pipeline Guide](docs/guides/ci-cd-pipeline.md)** | GitHub Actions workflows, deployment process, debugging |
+| **[Configuration Reference](docs/guides/configuration.md)** | All environment variables and settings |
+| **[API Reference](docs/api/endpoints.md)** | Complete endpoint documentation with examples |
+| **[Observability Setup](docs/observability/grafana-setup.md)** | Grafana dashboards, Prometheus scraping, monitoring |
+| **[Metrics Reference](docs/observability/metrics-reference.md)** | Full metric catalog, queries, and retention |
+| **[Alert Rules & Runbooks](docs/observability/alerts-rules.md)** | Alert definitions, escalation, remediation |
+| **[Troubleshooting](docs/guides/troubleshooting.md)** | Common issues and solutions |
+| **[Development Guide](docs/dev/contributing.md)** | Local setup, coding standards, testing |
 
 ---
 
@@ -137,6 +154,7 @@ cd 02-observability-ml-alerting
 bash scripts/bootstrap/setup.sh
 
 # 2. Start MLflow (Terminal 1)
+source .venv/bin/activate
 mlflow server --host 0.0.0.0 --port 5000
 
 # 3. Train the model (Terminal 2)
@@ -144,9 +162,11 @@ source .venv/bin/activate
 python -m app.pipeline.train
 
 # 4. Start inference server (Terminal 3)
+source .venv/bin/activate
 uvicorn app.serving.app:app --host 0.0.0.0 --port 8006 --workers 1
 
 # 5. Start metrics exporter (Terminal 4)
+source .venv/bin/activate
 uvicorn app.exporter.metrics_exporter:app --host 0.0.0.0 --port 8007
 
 # 6. Test a prediction
@@ -195,37 +215,34 @@ Top features by importance: `credit_score` (0.23), `income` (0.21), `loan_amount
 
 ---
 
-## Prometheus metrics reference
+## Prometheus Metrics Overview
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `ml_feature_drift_psi{feature}` | Gauge | PSI per feature vs training baseline |
-| `ml_feature_drift_ks_statistic{feature}` | Gauge | KS-test statistic per feature |
-| `ml_feature_drift_ks_pvalue{feature}` | Gauge | KS-test p-value per feature |
-| `ml_drift_detected` | Gauge | 1 if any feature PSI > 0.25 |
-| `ml_drift_features_count` | Gauge | Number of features above alert threshold |
-| `ml_prediction_confidence_mean` | Gauge | Rolling mean prediction probability |
-| `ml_prediction_confidence_std` | Gauge | Rolling std of prediction probabilities |
-| `ml_prediction_default_rate` | Gauge | Rolling default rate in live predictions |
-| `ml_predictions_total{decision}` | Counter | Total predictions by decision |
-| `ml_prediction_latency_seconds` | Histogram | End-to-end prediction latency |
-| `mlflow_run_metric{experiment,metric}` | Gauge | Latest MLflow run metrics |
-| `ml_dataset_feature_mean{dataset,feature}` | Gauge | Feature means by dataset |
-| `ml_schema_feature_mean{feature}` | Gauge | Training-set feature means (baseline) |
+The platform exports metrics across three dimensions: **drift detection**, **prediction quality**, and **model performance**.
+
+| Metric Category | Key Metrics | Description |
+|-----------------|------------|-------------|
+| **Drift Detection** | `ml_drift_detected`, `ml_feature_drift_psi{feature}`, `ml_feature_drift_ks_pvalue{feature}` | Feature distribution shift (PSI > 0.25 = alert) |
+| **Prediction Health** | `ml_prediction_confidence_mean`, `ml_prediction_default_rate`, `ml_predictions_total{decision}` | Model confidence and decision breakdown |
+| **Model Quality** | `mlflow_run_metric{metric="test_roc_auc"}`, `mlflow_run_metric{metric="test_f1"}` | Latest trained model metrics |
+| **Infrastructure** | `infrastructure_cpu_zscore`, `infrastructure_memory_ewma`, `infrastructure_disk_isolation_forest` | Anomaly detection on CPU/memory/disk |
+
+**Full reference:** [Metrics Documentation](docs/observability/metrics-reference.md) — includes Prometheus queries and dashboard examples.
 
 ---
 
-## Alert rules
+## Alert Rules
 
-| Alert | Condition | Severity |
-|-------|-----------|----------|
-| `ModelDriftDetected` | `ml_drift_detected == 1` for 2m | Warning |
-| `PredictionConfidenceLow` | `ml_prediction_confidence_mean < 0.35` for 5m | Warning |
-| `ModelAccuracyDegraded` | `mlflow_run_metric{metric="test_roc_auc"} < 0.75` | Critical |
-| `HighDefaultRate` | `ml_prediction_default_rate > 0.50` for 10m | Warning |
-| `InferenceServerDown` | `ml_inference_server_up == 0` for 1m | Critical |
+The platform fires alerts when metrics exceed operational thresholds:
 
-Runbooks: [`docs/runbooks/`](docs/runbooks/)
+| Alert | Condition | Severity | Action |
+|-------|-----------|----------|--------|
+| `ModelDriftDetected` | PSI > 0.25 for 2m | ⚠️ Warning | Check feature distributions |
+| `PredictionConfidenceLow` | mean confidence < 0.35 for 5m | ⚠️ Warning | Model uncertainty increasing |
+| `ModelAccuracyDegraded` | ROC-AUC < 0.75 | 🔴 Critical | Investigate or retrain |
+| `HighDefaultRate` | default_rate > 50% for 10m | ⚠️ Warning | Portfolio risk shift |
+| `InferenceServerDown` | server unreachable for 1m | 🔴 Critical | Restore server |
+
+**Full rules & runbooks:** [Alert Documentation](docs/runbooks/) — includes thresholds, escalation, and remediation steps.
 
 ---
 
