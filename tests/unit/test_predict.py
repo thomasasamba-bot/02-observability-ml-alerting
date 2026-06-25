@@ -89,10 +89,6 @@ def loaded_cache(tmp_path_factory):
     raise ScopeMismatch. We use `pytest.MonkeyPatch()` directly instead,
     which carries no scope restriction, and undo it ourselves at teardown.
     """
-    import mlflow
-    import mlflow.sklearn
-    from sklearn.ensemble import RandomForestClassifier
-
     # Reuse the project's own synthetic data generator (same one
     # test_training.py uses) so the model actually learns a real
     # credit-risk → default relationship. Pure random/uncorrelated
@@ -100,6 +96,10 @@ def loaded_cache(tmp_path_factory):
     # LOW_RISK probability" flaky or simply wrong.
     import sys
     from pathlib import Path as _Path
+
+    import mlflow
+    import mlflow.sklearn
+    from sklearn.ensemble import RandomForestClassifier
     sys.path.insert(0, str(_Path(__file__).parents[2]))
     from scripts.data.generate_data import generate_baseline
 
