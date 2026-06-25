@@ -250,7 +250,7 @@ The platform fires alerts when metrics exceed operational thresholds:
 
 ## Project structure
 
-![Project folder structure](docs/diagrams/project%20_folder_structure_overview.png)
+![Project folder structure](docs/diagrams/project-folder-structure-overview.png)
 
 ---
 
